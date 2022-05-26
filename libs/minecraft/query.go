@@ -1,39 +1,31 @@
 package minecraft
 
-import "github.com/xrjr/mcutils/pkg/query"
+import (
+	"encoding/json"
 
-type FullQuery struct {
-	Hostname   string
-	GameType   string
-	GameID     string
-	Version    string
-	Map        string
-	Host       string
-	Port       int
-	MaxPlayers string
-	Players    []string
-	Plugins    string
-}
+	"github.com/xrjr/mcutils/pkg/query"
+)
 
-func newFullQuery(addr string, port int, query query.FullStat) *FullQuery {
-	return &FullQuery{
-		Hostname:   query.Properties["hostname"],
-		GameType:   query.Properties["game type"],
-		GameID:     query.Properties["game_id"],
-		Version:    query.Properties["version"],
-		Map:        query.Properties["map"],
-		MaxPlayers: query.Properties["maxplayers"],
-		Plugins:    query.Properties["plugins"],
-		Players:    query.OnlinePlayers,
-		Port:       port,
-		Host:       addr,
+type FullQuery map[string]interface{}
+
+func newFullQuery(addr string, port int, query query.FullStat) (*FullQuery, error) {
+	var slp FullQuery
+	data, err := json.Marshal(query)
+	if err != nil {
+		return nil, err
 	}
+	err = json.Unmarshal(data, &slp)
+	if err != nil {
+		return nil, err
+	}
+	slp["address"] = addr
+	slp["port"] = port
+	return &slp, nil
 }
-
 func Query(addr string, port int) (*FullQuery, error) {
 	stat, err := query.QueryFull(addr, port)
 	if err != nil {
 		return nil, err
 	}
-	return newFullQuery(addr, port, stat), nil
+	return newFullQuery(addr, port, stat)
 }

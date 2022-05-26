@@ -1,65 +1,62 @@
 package minecraft
 
-import "github.com/xrjr/mcutils/pkg/ping"
+import (
+	"encoding/json"
 
-type ServerListPing struct {
-	Version    string `json:"version"`
-	MOTD       string `json:"motd"`
-	Host       string `json:"host"`
-	Favicon    string `json:"favicon"`
-	Port       int    `json:"port"`
-	MaxPlayers int    `json:"maxPlayers"`
+	"github.com/xrjr/mcutils/pkg/ping"
+)
+
+type SLP map[string]interface{}
+type input interface {
+	ping.JSON | ping.LegacyPingInfos
 }
 
-func newSLPFromPing(host string, port int, ping ping.Infos) *ServerListPing {
-	return &ServerListPing{
-		Version:    ping.Version.Name,
-		MOTD:       ping.Description,
-		Favicon:    ping.Favicon,
-		Host:       host,
-		Port:       port,
-		MaxPlayers: ping.Players.Max,
+func toSLP[T input](addr string, port int, p T) (*SLP, error) {
+	var slp SLP
+	data, err := json.Marshal(p)
+	if err != nil {
+		return nil, err
 	}
-}
-
-func newSLPFromLegacyPing(host string, port int, ping ping.LegacyPingInfos) *ServerListPing {
-	return &ServerListPing{
-		Version:    ping.MinecraftVersion,
-		MOTD:       ping.MOTD,
-		Favicon:    "",
-		Host:       host,
-		Port:       port,
-		MaxPlayers: ping.MaxPlayers,
+	err = json.Unmarshal(data, &slp)
+	if err != nil {
+		return nil, err
 	}
+	slp["address"] = addr
+	slp["port"] = port
+	return &slp, nil
 }
 
 // Ping automatically detects server version
-func Ping(addr string, port int) (*ServerListPing, error) {
+func Ping(addr string, port int) (*SLP, error) {
 	properties, _, err := ping.Ping(addr, port)
-
-	if err == ping.ErrMalformedPacket {
+	if err == ping.ErrInvalidPacketType {
 		return pingLegacy(addr, port)
 	}
 
-	return newSLPFromPing(addr, port, properties.Infos()), err
+	if err != nil {
+		return nil, err
+	}
+	return toSLP(addr, port, properties)
 }
 
-func pingLegacy(addr string, port int) (*ServerListPing, error) {
-	properties, _, err := ping.PingLegacy1_6_4(addr, port)
+func pingLegacy(addr string, port int) (*SLP, error) {
+	properties, _, err := ping.PingLegacy(addr, port)
 
-	if err == ping.ErrMalformedPacket {
+	if err == ping.ErrInvalidPacketType {
 		return pingOld(addr, port)
 	}
 
-	return newSLPFromLegacyPing(addr, port, properties), err
+	if err != nil {
+		return nil, err
+	}
+	return toSLP(addr, port, properties)
 }
 
-func pingOld(addr string, port int) (*ServerListPing, error) {
-	properties, _, err := ping.PingLegacy(addr, port)
-
-	if err == ping.ErrMalformedPacket {
-		return pingLegacy(addr, port)
+func pingOld(addr string, port int) (*SLP, error) {
+	properties, _, err := ping.PingLegacy1_6_4(addr, port)
+	if err != nil {
+		return nil, err
 	}
 
-	return newSLPFromLegacyPing(addr, port, properties), err
+	return toSLP(addr, port, properties)
 }

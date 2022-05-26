@@ -1,13 +1,17 @@
 package database
 
 import (
-	"database/sql"
+	"context"
 	"log"
 	"os"
 	"sync"
+	"time"
 
-	_ "github.com/lib/pq" // postgre driver
 	"github.com/mrmarble/mineseek/libs/minecraft"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
 var (
@@ -16,54 +20,73 @@ var (
 )
 
 type DB struct {
-	db *sql.DB
+	ctx    context.Context
+	cancel context.CancelFunc
+	client *mongo.Client
 }
 
-func (db *DB) InsertSLP(slp *minecraft.ServerListPing) error {
-	_, err := db.db.Exec("INSERT INTO servers VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT DO UPDATE", slp.Host, slp.Port, slp.Version, slp.Favicon, slp.MOTD, slp.MaxPlayers)
+func (db *DB) Disconnect() {
+	db.cancel()
+	if err := db.client.Disconnect(db.ctx); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func (db *DB) InsertSLP(slp *minecraft.SLP) error {
+	coll := db.client.Database("mineseek").Collection("servers")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	doc, err := bson.Marshal(slp)
+	if err != nil {
+		return err
+	}
+	_, err = coll.InsertOne(ctx, doc)
 	return err
 }
 
 func (db *DB) InsertQuery(query *minecraft.FullQuery) error {
-	_, err := db.db.Exec("INSERT INTO queries VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) ON CONFLICT DO UPDATE", query.Host, query.Port, query.GameType, query.GameID, query.Version, query.Plugins, query.Map, query.MaxPlayers)
-	return err
-}
+	coll := db.client.Database("mineseek").Collection("queries")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
-func (db *DB) InsertPlayers(query *minecraft.FullQuery) error {
-	tx, err := db.db.Begin()
+	doc, err := bson.Marshal(query)
 	if err != nil {
 		return err
 	}
-	for _, player := range query.Players {
-		uuid, err := minecraft.GetUUID(player)
-		if err != nil {
-			return err
-		}
-		_, err = tx.Exec("INSERT INTO players VALUES ($1, $2) ON CONFLICT DO UPDATE", uuid, player)
-		if err != nil {
-			return err
-		}
-	}
-	err = tx.Commit()
+	_, err = coll.InsertOne(ctx, doc)
 	return err
 }
 
-func getConnection() (*sql.DB, error) {
-	return sql.Open("postgres", os.Getenv("DATABASE_URL"))
+func getConnection(ctx context.Context) (*mongo.Client, error) {
+	return mongo.Connect(ctx, options.Client().ApplyURI(os.Getenv("DATABASE_URL")))
 }
 
-func initDB() {
-	db, err := getConnection()
+func innitDB() {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	db, err := getConnection(ctx)
 	if err != nil {
 		log.Panic(err)
 	}
+
 	data = &DB{
-		db: db,
+		ctx:    ctx,
+		client: db,
+		cancel: cancel,
 	}
 }
 
 func New() *DB {
-	once.Do(initDB)
-
+	if data != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		err := data.client.Ping(ctx, readpref.Primary())
+		if err != nil {
+			innitDB()
+			return data
+		}
+	} else {
+		innitDB()
+	}
 	return data
 }
