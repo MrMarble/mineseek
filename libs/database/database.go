@@ -19,7 +19,7 @@ type DB struct {
 }
 
 func (db *DB) InsertSLP(slp *minecraft.ServerListPing) error {
-	_, err := db.db.Exec("INSERT INTO servers VALUES (%s,%d,%s,%s,%s,%d,%s)", slp.Host, slp.Port, slp.MOTD, slp.Favicon, slp.MOTD, slp.MaxPlayers, slp.MaxPlayers)
+	_, err := db.db.Exec("INSERT INTO servers VALUES (%s,%d, %s,%s,%s,%d)", slp.Host, slp.Port, slp.Version, slp.Favicon, slp.MOTD, slp.MaxPlayers)
 	return err
 }
 
