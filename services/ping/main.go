@@ -1,28 +1,40 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"net"
 	"net/http"
+	"os"
 	"strconv"
+	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/mrmarble/mineseek/libs/database"
 	"github.com/mrmarble/mineseek/libs/minecraft"
-	//"github.com/mrmarble/mineseek/queue"
+	"github.com/mrmarble/mineseek/libs/queue"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
 
-func main() {
-	//queue := queue.New("ping", "servers")
-	//
-	/* 	queue.StartConsuming(func(s string) error {
+var (
+	useDB *bool
+)
 
-		err = db.InsertSLP(mc)
-		if err != nil {
-			log.Printf("Error inserting SLP %v", err)
-		}
-		return nil
-	}) */
+func init() {
+	useDB = flag.Bool("dry", false, "save to database")
+	flag.Parse()
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339})
+	log.Info().Bool("dry-run", *useDB).Msg("Service started")
+}
+
+func main() {
+	queue := queue.New("ping", "servers")
+
+	queue.StartConsuming(func(s string) error {
+		_, err := ping(s)
+		return err
+	})
 
 	e := echo.New()
 	e.GET("/ping", func(c echo.Context) error {
@@ -36,7 +48,8 @@ func main() {
 	e.Logger.Fatal(e.Start(":8080"))
 }
 
-func ping(addr string) (*minecraft.ServerListPing, error) {
+func ping(addr string) (minecraft.SLP, error) {
+	log.Info().Str("addr", addr).Msg("New address")
 	host, port, err := net.SplitHostPort(addr)
 	if err != nil {
 		if _, ok := err.(*net.AddrError); ok {
@@ -54,11 +67,16 @@ func ping(addr string) (*minecraft.ServerListPing, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Error pinging server %v", err)
 	}
-	db := database.New()
-	err = db.InsertSLP(mc)
 
-	if err != nil {
-		return nil, fmt.Errorf("Error inserting SLP %v", err)
+	if !*useDB {
+		db := database.New()
+		defer db.Disconnect()
+		err = db.InsertSLP(mc)
+
+		if err != nil {
+			return nil, fmt.Errorf("Error inserting SLP %v", err)
+		}
+
 	}
 	return mc, nil
 }

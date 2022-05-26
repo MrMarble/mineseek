@@ -1,4 +1,4 @@
-module github.com/mrmarble/mineseek/queue
+module github.com/mrmarble/mineseek/libs/queue
 
 go 1.18
 

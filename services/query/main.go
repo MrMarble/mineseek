@@ -1,0 +1,88 @@
+package main
+
+import (
+	"flag"
+	"fmt"
+	"net"
+	"net/http"
+	"os"
+	"strconv"
+	"time"
+
+	"github.com/labstack/echo/v4"
+	"github.com/mrmarble/mineseek/libs/database"
+	"github.com/mrmarble/mineseek/libs/minecraft"
+	"github.com/mrmarble/mineseek/libs/queue"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+)
+
+var (
+	useDB *bool
+)
+
+func init() {
+	useDB = flag.Bool("dry", false, "save to database")
+	flag.Parse()
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339})
+	log.Info().Bool("dry-run", *useDB).Msg("Service started")
+
+}
+
+func main() {
+	queue := queue.New("query", "queries")
+
+	queue.StartConsuming(func(s string) error {
+		_, err := query(s)
+		return err
+	})
+
+	e := echo.New()
+	e.GET("/query", func(c echo.Context) error {
+		mc, err := query(c.QueryParam("address"))
+		if err != nil {
+			return c.String(http.StatusNotFound, err.Error())
+		}
+
+		return c.JSON(http.StatusOK, mc)
+	})
+	e.Logger.Fatal(e.Start(":8080"))
+}
+
+func query(addr string) (minecraft.FullQuery, error) {
+	log.Info().Str("addr", addr).Msg("New address")
+	host, port, err := net.SplitHostPort(addr)
+	if err != nil {
+		if _, ok := err.(*net.AddrError); ok {
+			return query(addr + ":25565")
+		}
+		return nil, fmt.Errorf("Error parsing address %v", err)
+	}
+
+	pint, err := strconv.Atoi(port)
+	if err != nil {
+		return nil, fmt.Errorf("Error parsing port %v", err)
+	}
+
+	mc, err := minecraft.Query(host, pint)
+	if err != nil {
+		return nil, fmt.Errorf("Error querying server %v", err)
+	}
+	if !*useDB {
+		db := database.New()
+		defer db.Disconnect()
+		err = db.InsertQuery(mc)
+
+		if err != nil {
+			return nil, fmt.Errorf("Error inserting query %v", err)
+		}
+		err = db.InsertPlayer(mc)
+
+		if err != nil {
+			return nil, fmt.Errorf("Error inserting players %v", err)
+		}
+
+	}
+
+	return mc, nil
+}

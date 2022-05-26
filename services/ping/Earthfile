@@ -1,0 +1,32 @@
+VERSION 0.6
+
+deps:
+    FROM  golang:1.18-alpine
+    WORKDIR /services
+    COPY ../../libs/minecraft+artifact/* /libs/minecraft
+    COPY ../../libs/database+artifact/* /libs/database
+    COPY ../../libs/queue+artifact/* /libs/queue
+    COPY go.mod go.sum ./
+    RUN go mod download
+
+compile:
+    FROM +deps
+    COPY main.go .
+    RUN go build -o ping main.go
+
+unit-test:
+    FROM +compile
+    COPY main_test.go .
+    RUN CGO_ENABLED=0 go test
+
+docker:
+    FROM +compile
+
+    EXPOSE 8080
+    ENTRYPOINT ["./ping"]
+
+    SAVE IMAGE ping:latest
+
+tidy:
+    LOCALLY
+    RUN go mod tidy
