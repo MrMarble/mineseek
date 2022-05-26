@@ -33,6 +33,7 @@ func newSLPFromLegacyPing(host string, port int, ping ping.LegacyPingInfos) *Ser
 	}
 }
 
+// Ping automatically detects server version
 func Ping(addr string, port int) (*ServerListPing, error) {
 	properties, _, err := ping.Ping(addr, port)
 
