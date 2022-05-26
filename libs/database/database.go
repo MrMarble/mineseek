@@ -3,6 +3,7 @@ package database
 import (
 	"database/sql"
 	"log"
+	"os"
 	"sync"
 
 	_ "github.com/lib/pq" // postgre driver
@@ -24,8 +25,7 @@ func (db *DB) InsertSLP(slp *minecraft.ServerListPing) error {
 }
 
 func getConnection() (*sql.DB, error) {
-	return sql.Open("postgres", "") // TODO: Use env
-
+	return sql.Open("postgres", os.Getenv("DATABASE_URL"))
 }
 
 func initDB() {
