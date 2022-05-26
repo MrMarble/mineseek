@@ -20,12 +20,12 @@ type DB struct {
 }
 
 func (db *DB) InsertSLP(slp *minecraft.ServerListPing) error {
-	_, err := db.db.Exec("INSERT INTO servers VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT UPDATE;", slp.Host, slp.Port, slp.Version, slp.Favicon, slp.MOTD, slp.MaxPlayers)
+	_, err := db.db.Exec("INSERT INTO servers VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT DO UPDATE;", slp.Host, slp.Port, slp.Version, slp.Favicon, slp.MOTD, slp.MaxPlayers)
 	return err
 }
 
 func (db *DB) InsertQuery(query *minecraft.FullQuery) error {
-	_, err := db.db.Exec("INSERT INTO queries VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) ON CONFLICT UPDATE;", query.Host, query.Port, query.GameType, query.GameID, query.Version, query.Plugins, query.Map, query.MaxPlayers)
+	_, err := db.db.Exec("INSERT INTO queries VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) ON CONFLICT DO UPDATE;", query.Host, query.Port, query.GameType, query.GameID, query.Version, query.Plugins, query.Map, query.MaxPlayers)
 	return err
 }
 
@@ -39,7 +39,7 @@ func (db *DB) InsertPlayers(query *minecraft.FullQuery) error {
 		if err != nil {
 			return err
 		}
-		_, err = tx.Exec("INSERT INTO players VALUES ($1, $2) ON CONFLICT UPDATE;", uuid, player)
+		_, err = tx.Exec("INSERT INTO players VALUES ($1, $2) ON CONFLICT DO UPDATE;", uuid, player)
 		if err != nil {
 			return err
 		}
