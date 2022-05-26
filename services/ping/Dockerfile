@@ -1,4 +1,4 @@
-ARG GO_VERSION=1.17
+ARG GO_VERSION=1.18
 
 ## Build container
 FROM golang:${GO_VERSION}-alpine AS builder
@@ -15,14 +15,16 @@ COPY ./go.mod ./go.sum ./
 RUN go mod download
 
 COPY ./ ./
-RUN CGO_ENABLED=0 go build -installsuffix 'static' -o /example_api /src/cmd/example_api
+RUN CGO_ENABLED=0 go build -installsuffix 'static' -o /ping .
 
 ## Final container
 FROM scratch AS final
 
 COPY --from=builder /user/group /user/passwd /etc/
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-COPY --from=builder /example_api /example_api
+COPY --from=builder /ping /ping
 
-EXPOSE 8000
+EXPOSE 8080
 USER 65534:65534
+
+ENTRYPOINT [ "/ping" ]
