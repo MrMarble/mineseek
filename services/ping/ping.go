@@ -7,8 +7,8 @@ import (
 	"strconv"
 
 	"github.com/labstack/echo/v4"
-	"github.com/mrmarble/mineseek/database"
-	"github.com/mrmarble/mineseek/minecraft"
+	"github.com/mrmarble/mineseek/libs/database"
+	"github.com/mrmarble/mineseek/libs/minecraft"
 	//"github.com/mrmarble/mineseek/queue"
 )
 

@@ -1,4 +1,4 @@
-module github.com/mrmarble/mineseek/database
+module github.com/mrmarble/mineseek/libs/database
 
 go 1.18
 

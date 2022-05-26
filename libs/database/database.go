@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	_ "github.com/lib/pq" // postgre driver
-	"github.com/mrmarble/mineseek/minecraft"
+	"github.com/mrmarble/mineseek/libs/minecraft"
 )
 
 var (
