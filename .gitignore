@@ -1,0 +1,6 @@
+.vscode
+.task
+/bin
+/dist
+/mineseek
+/coverage.txt
