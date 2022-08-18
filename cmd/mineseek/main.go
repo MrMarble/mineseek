@@ -48,7 +48,7 @@ type Cli struct {
 
 	Ping    bool `help:"Server List Ping." default:"false"`
 	Stealth bool `help:"Stealth scan. Requires root." default:"false"`
-	Verbose bool `help:"Verbose output. Show offline server" default:"false" short:"v"`
+	Verbose bool `help:"Verbose output. Show offline servers" default:"false" short:"v"`
 }
 
 var (
