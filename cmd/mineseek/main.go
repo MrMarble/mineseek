@@ -13,6 +13,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/xrjr/mcutils/pkg/ping"
 
+	"github.com/mrmarble/mineseek/internal/minecraft"
 	"github.com/mrmarble/mineseek/internal/scanner"
 	"github.com/mrmarble/mineseek/internal/utils"
 )
@@ -142,7 +143,7 @@ func printServer(cli *Cli, result scanner.Result) {
 					infos.Players.Online,
 					infos.Players.Max,
 					printPlayers(&infos))
-				fmt.Printf("  MOTD: %s\n", infos.Description)
+				fmt.Printf("  MOTD: %s\n", minecraft.Motd(*result.SLP))
 				fmt.Printf("\n" + msg("+====================+") + "\n\n\n")
 			}
 		}

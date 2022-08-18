@@ -19,6 +19,7 @@ require (
 	github.com/charmbracelet/lipgloss v0.5.0
 	github.com/mattn/go-colorable v0.1.12 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
+	github.com/mitchellh/mapstructure v1.5.0
 	github.com/xrjr/mcutils v1.3.2
 	golang.org/x/sys v0.0.0-20210927094055-39ccf1dd6fa6 // indirect
 )
