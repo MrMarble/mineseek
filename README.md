@@ -18,7 +18,7 @@ Flags:
       --timeout=1s       Timeout for each scan.
       --ping             Server List Ping.
       --stealth          Stealth scan. Requires root.
-  -v, --verbose          Verbose output. Show offline server
+  -v, --verbose          Verbose output. Show offline servers
 ```
 ## Screenshot
 
