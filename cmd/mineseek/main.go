@@ -109,6 +109,7 @@ func run(cli *Cli) error {
 
 	fmt.Println(msg("[~]"), "Scanning", addr, "with", cli.Rate, "threads")
 	fmt.Println(msg("[~]"), "Hosts to scan:", utils.AvailableHosts(addr))
+	fmt.Println()
 
 	results, err := scanner.Scan(&opts)
 	if err != nil {
